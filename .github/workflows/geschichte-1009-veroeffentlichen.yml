@@ -1,0 +1,63 @@
+name: 🌿 Gedankenreisen – Geschichte veröffentlichen
+
+on:
+  schedule:
+    - cron: '0 4 * * 5'
+      timezone: 'Europe/Berlin'
+  workflow_dispatch:
+    inputs:
+      release_branch:
+        description: 'Welche Geschichte soll veröffentlicht werden?'
+        required: true
+        default: 'geschichte-1009'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository vorbereiten
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Veröffentlichungsdatum prüfen
+        if: github.event_name == 'schedule'
+        run: |
+          TODAY=$(TZ=Europe/Berlin date +%Y-%m-%d)
+          if [ "$TODAY" != "2026-08-14" ]; then
+            echo "Heute ist $TODAY – Veröffentlichung erst am 14.08.2026."
+            exit 0
+          fi
+
+      - name: Veröffentlichungs-Branch festlegen
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "branch=${{ inputs.release_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=geschichte-1009" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Geschichte veröffentlichen
+        env:
+          RELEASE_BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          git fetch origin main "$RELEASE_BRANCH"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout main
+
+          if git merge-base --is-ancestor "origin/$RELEASE_BRANCH" main; then
+            echo "Die Geschichte ist bereits in main enthalten."
+          else
+            git merge --no-edit "origin/$RELEASE_BRANCH"
+            git push origin main
+            echo "Geschichte erfolgreich veröffentlicht."
+          fi
