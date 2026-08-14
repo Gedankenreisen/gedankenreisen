@@ -2,7 +2,7 @@ name: 🌿 Gedankenreisen – Geschichte veröffentlichen
 
 on:
   schedule:
-    - cron: '0 4 * * 5'
+    - cron: '30 8 * * 5'
       timezone: 'Europe/Berlin'
   workflow_dispatch:
     inputs:
